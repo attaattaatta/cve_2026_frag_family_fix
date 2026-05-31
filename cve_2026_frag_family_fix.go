@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	version = "0.16.0"
+	version = "0.17.0"
 	red   = "\033[0;91m"
 	green = "\033[0;92m"
 	reset = "\033[0m"
@@ -946,7 +946,7 @@ func getProtectedKernels_CVE_2026_31431() []KernelRequirement {
 
 		{Vendor: "ubuntu", Version: "22.04", MinKernel: "5.15.0-177-generic"},
 		{Vendor: "ubuntu", Version: "24.04", MinKernel: "6.8.0-111-generic"},
-		{Vendor: "ubuntu", Version: "25.04", MinKernel: "6.14.0-37-generic"},
+		{Vendor: "ubuntu", Version: "25.04", MinKernel: "9.9.9-99-generic"},
 		{Vendor: "ubuntu", Version: "26.04", MinKernel: "7.0.0-15-generic"},
 
 		{Vendor: "almalinux", Version: "8.10", MinKernel: "4.18.0-553.121.1.el8_10.x86_64"},
@@ -979,9 +979,9 @@ func getProtectedKernels_CVE_2026_43284() []KernelRequirement {
 		{Vendor: "debian", Version: "13", MinKernel: "6.12.86+deb13-amd64"},
 
 		{Vendor: "ubuntu", Version: "22.04", MinKernel: "9.9.9-99-generic"},
-		{Vendor: "ubuntu", Version: "24.04", MinKernel: "9.9.9-99-generic"},
+		{Vendor: "ubuntu", Version: "24.04", MinKernel: "6.8.0-124-generic"},
 		{Vendor: "ubuntu", Version: "25.04", MinKernel: "9.9.9-99-generic"},
-		{Vendor: "ubuntu", Version: "26.04", MinKernel: "9.9.9-99-generic"},
+		{Vendor: "ubuntu", Version: "26.04", MinKernel: "7.0.0-22-generic"},
 
 		{Vendor: "almalinux", Version: "8.10", MinKernel: "4.18.0-553.123.2.el8_10.x86_64"},
 		{Vendor: "almalinux", Version: "9.7", MinKernel: "5.14.0-611.54.3.el9_7.x86_64"},
@@ -1013,15 +1013,15 @@ func getProtectedKernels_CVE_2026_46300() []KernelRequirement {
 		{Vendor: "debian", Version: "13", MinKernel: "6.12.88+deb13-amd64"},
 
 		{Vendor: "ubuntu", Version: "22.04", MinKernel: "9.9.9-99-generic"},
-		{Vendor: "ubuntu", Version: "24.04", MinKernel: "9.9.9-99-generic"},
+		{Vendor: "ubuntu", Version: "24.04", MinKernel: "6.8.0-124-generic"},
 		{Vendor: "ubuntu", Version: "25.04", MinKernel: "9.9.9-99-generic"},
-		{Vendor: "ubuntu", Version: "26.04", MinKernel: "9.9.9-99-generic"},
+		{Vendor: "ubuntu", Version: "26.04", MinKernel: "7.0.0-22-generic"},
 
 		{Vendor: "almalinux", Version: "8.10", MinKernel: "4.18.0-553.124.4.el8_10.x86_64"},
 		{Vendor: "almalinux", Version: "9.7", MinKernel: "5.14.0-611.54.6.el9_7.x86_64"},
 		{Vendor: "almalinux", Version: "10.1", MinKernel: "6.12.0-124.56.5.el10_1.x86_64"},
 
-		{Vendor: "fedora", Version: "42", MinKernel: "6.19.14-107.fc42.x86_64"},
+		{Vendor: "fedora", Version: "42", MinKernel: "6.19.14-108.fc42.x86_64"},
 		{Vendor: "fedora", Version: "43", MinKernel: "7.0.9-105.fc43.x86_64"},
 		{Vendor: "fedora", Version: "44", MinKernel: "7.0.9-205.fc44.x86_64"},
 
@@ -1029,9 +1029,9 @@ func getProtectedKernels_CVE_2026_46300() []KernelRequirement {
 		{Vendor: "oracle", Version: "9.7", MinKernel: "6.12.0-202.76.4.4.el9uek.x86_64"},
 		{Vendor: "oracle", Version: "10.1", MinKernel: "6.12.0-202.76.4.4.el10uek.x86_64"},
 
-		{Vendor: "rocky", Version: "8.10", MinKernel: "9.9.9-99.el8_10.x86_64"},
-		{Vendor: "rocky", Version: "9.7", MinKernel: "9.9.9-99.el9_7.x86_64"},
-		{Vendor: "rocky", Version: "10.1", MinKernel: "9.9.9-99.el10_1.x86_64"},
+		{Vendor: "rocky", Version: "8.10", MinKernel: "4.18.0-553.126.1.el8_10.x86_64"},
+		{Vendor: "rocky", Version: "9.7", MinKernel: "5.14.0-687.12.1.el9_8.x86_64"},
+		{Vendor: "rocky", Version: "10.1", MinKernel: "6.12.0-211.16.1.el10_2.0.1.x86_64"},
 
 		{Vendor: "centos", Version: "8", MinKernel: "9.9.9-99.el9.x86_64"},
 		{Vendor: "centos", Version: "9", MinKernel: "9.9.9-99.el9.x86_64"},
