@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	version = "0.17.0"
+	version = "0.18.4"
 	red   = "\033[0;91m"
 	green = "\033[0;92m"
 	reset = "\033[0m"
@@ -73,6 +73,189 @@ func needMinorOSUpgrade(vendor string, protectedKernels []KernelRequirement) boo
 		if osMajor == pkMajor && osMinor < pkMinor {
 			return true
 		}
+	}
+
+	return false
+}
+
+
+func getSysInfo() (vendor string, version string, kernelRelease string) {
+	file, err := os.Open("/etc/os-release")
+	if err != nil {
+		return "", "", ""
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	id := ""
+	versionID := ""
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "ID=") {
+			id = strings.Trim(strings.TrimPrefix(line, "ID="), "\"")
+		}
+		if strings.HasPrefix(line, "VERSION_ID=") {
+			versionID = strings.Trim(strings.TrimPrefix(line, "VERSION_ID="), "\"")
+		}
+	}
+
+	idLower := strings.ToLower(id)
+	switch {
+	case strings.Contains(idLower, "ol") || strings.Contains(idLower, "oracle"):
+		vendor = "oracle"
+	case strings.Contains(idLower, "almalinux"):
+		vendor = "almalinux"
+	case strings.Contains(idLower, "debian"):
+		vendor = "debian"
+	case strings.Contains(idLower, "ubuntu"):
+		vendor = "ubuntu"
+	case strings.Contains(idLower, "fedora"):
+		vendor = "fedora"
+	case strings.Contains(idLower, "rocky"):
+	    vendor = "rocky"
+	case strings.Contains(idLower, "centos"):
+		vendor = "centos"
+	default:
+		vendor = ""
+	}
+
+	version = versionID
+
+	var utsname unix.Utsname
+	if err := unix.Uname(&utsname); err != nil {
+		kernelRelease = ""
+	} else {
+		kernelRelease = strings.TrimRight(string(utsname.Release[:]), "\x00")
+	}
+
+	return vendor, version, kernelRelease
+}
+
+func parseKernelVersion(version string) (major, minor, patch int, build []int) {
+	mainPart := version
+
+	if idx := strings.Index(mainPart, "+"); idx != -1 {
+		mainPart = mainPart[:idx]
+	}
+
+	if idx := strings.Index(mainPart, ".el"); idx != -1 {
+		mainPart = mainPart[:idx]
+	} else if idx := strings.Index(mainPart, "-generic"); idx != -1 {
+		mainPart = mainPart[:idx]
+	} else if idx := strings.Index(mainPart, "-amd64"); idx != -1 {
+		mainPart = mainPart[:idx]
+	}
+
+	if idx := strings.Index(mainPart, ".fc"); idx != -1 {
+		mainPart = mainPart[:idx]
+	}
+
+	versionPartsLocal := strings.Split(mainPart, "-")
+
+	if len(versionPartsLocal) >= 1 {
+		verNums := strings.Split(versionPartsLocal[0], ".")
+		if len(verNums) >= 1 {
+			major, _ = strconv.Atoi(verNums[0])
+		}
+		if len(verNums) >= 2 {
+			minor, _ = strconv.Atoi(verNums[1])
+		}
+		if len(verNums) >= 3 {
+			patch, _ = strconv.Atoi(verNums[2])
+		}
+	}
+
+	if len(versionPartsLocal) >= 2 {
+		buildStrs := strings.Split(versionPartsLocal[1], ".")
+		for _, bs := range buildStrs {
+			num, err := strconv.Atoi(bs)
+			if err == nil {
+				build = append(build, num)
+			}
+		}
+	}
+
+	return major, minor, patch, build
+}
+
+func compareBuilds(b1, b2 []int) int {
+	for i := 0; i < len(b1) && i < len(b2); i++ {
+		if b1[i] > b2[i] {
+			return 1
+		} else if b1[i] < b2[i] {
+			return -1
+		}
+	}
+
+	if len(b1) > len(b2) {
+		return 1
+	} else if len(b1) < len(b2) {
+		return -1
+	}
+
+	return 0
+}
+
+func compareKernelVersions(v1, v2 string) int {
+	v1Major, v1Minor, v1Patch, v1Build := parseKernelVersion(v1)
+	v2Major, v2Minor, v2Patch, v2Build := parseKernelVersion(v2)
+
+	if v1Major != v2Major {
+		return compare(v1Major, v2Major)
+	}
+	if v1Minor != v2Minor {
+		return compare(v1Minor, v2Minor)
+	}
+	if v1Patch != v2Patch {
+		return compare(v1Patch, v2Patch)
+	}
+
+	return compareBuilds(v1Build, v2Build)
+}
+
+func compare(a, b int) int {
+	if a > b {
+		return 1
+	} else if a < b {
+		return -1
+	}
+	return 0
+}
+
+func versionParts(version string) (int, int) {
+	parts := strings.Split(version, ".")
+	major := 0
+	minor := 0
+	if len(parts) > 0 {
+		major, _ = strconv.Atoi(parts[0])
+	}
+	if len(parts) > 1 {
+		minor, _ = strconv.Atoi(parts[1])
+	}
+	return major, minor
+}
+
+func isProtectedOS(getProtectedKernels func() []KernelRequirement) bool {
+	vendor, version, kernelRelease := getSysInfo()
+	if vendor == "" || version == "" || kernelRelease == "" {
+		return false
+	}
+
+	osMajor, _ := versionParts(version)
+
+	protectedKernels := getProtectedKernels()
+	for _, pk := range protectedKernels {
+		if vendor != pk.Vendor {
+			continue
+		}
+		pkMajor, _ := versionParts(pk.Version)
+
+		if osMajor != pkMajor {
+			continue
+		}
+		result := compareKernelVersions(kernelRelease, pk.MinKernel)
+		return result >= 0
 	}
 
 	return false
@@ -165,6 +348,26 @@ func isProtectedOSMaxVersion_CVE_2026_43284() bool {
 	return osMajor > maxMajor || (osMajor == maxMajor && osMinor > maxMinor)
 }
 
+func isProtectedOSMaxVersion_CVE_2026_46300() bool {
+	vendor, version, _ := getSysInfo()
+	maxVersion := getMaxProtectedVersion_CVE_2026_46300(vendor)
+
+	osMajor, osMinor := versionParts(version)
+	maxMajor, maxMinor := versionParts(maxVersion)
+
+	return osMajor > maxMajor || (osMajor == maxMajor && osMinor > maxMinor)
+}
+
+func isProtectedOSMaxVersion_CVE_2026_46331() bool {
+	vendor, version, _ := getSysInfo()
+	maxVersion := getMaxProtectedVersion_CVE_2026_46331(vendor)
+
+	osMajor, osMinor := versionParts(version)
+	maxMajor, maxMinor := versionParts(maxVersion)
+
+	return osMajor > maxMajor || (osMajor == maxMajor && osMinor > maxMinor)
+}
+
 func isExactOSMatch_CVE_2026_31431() bool {
 	vendor, version, kernelRelease := getSysInfo()
 	osMajor, _ := versionParts(version)
@@ -177,6 +380,9 @@ func isExactOSMatch_CVE_2026_31431() bool {
 		pkMajor, _ := versionParts(pk.Version)
 
 		if osMajor == pkMajor {
+			if strings.HasPrefix(pk.MinKernel, "9.9.9-99") {
+				return false
+			}
 			result := compareKernelVersions(kernelRelease, pk.MinKernel)
 			return result < 0
 		}
@@ -189,6 +395,50 @@ func isExactOSMatch_CVE_2026_43284() bool {
 	osMajor, _ := versionParts(version)
 
 	protectedKernels := getProtectedKernels_CVE_2026_43284()
+	for _, pk := range protectedKernels {
+		if vendor != pk.Vendor {
+			continue
+		}
+		pkMajor, _ := versionParts(pk.Version)
+
+		if osMajor == pkMajor {
+			if strings.HasPrefix(pk.MinKernel, "9.9.9-99") {
+				return false
+			}
+			result := compareKernelVersions(kernelRelease, pk.MinKernel)
+			return result < 0
+		}
+	}
+	return false
+}
+
+func isExactOSMatch_CVE_2026_46300() bool {
+	vendor, version, kernelRelease := getSysInfo()
+	osMajor, _ := versionParts(version)
+
+	protectedKernels := getProtectedKernels_CVE_2026_46300()
+	for _, pk := range protectedKernels {
+		if vendor != pk.Vendor {
+			continue
+		}
+		pkMajor, _ := versionParts(pk.Version)
+
+		if osMajor == pkMajor {
+			if strings.HasPrefix(pk.MinKernel, "9.9.9-99") {
+				return false
+			}
+			result := compareKernelVersions(kernelRelease, pk.MinKernel)
+			return result < 0
+		}
+	}
+	return false
+}
+
+func isExactOSMatch_CVE_2026_46331() bool {
+	vendor, version, kernelRelease := getSysInfo()
+	osMajor, _ := versionParts(version)
+
+	protectedKernels := getProtectedKernels_CVE_2026_46331()
 	for _, pk := range protectedKernels {
 		if vendor != pk.Vendor {
 			continue
@@ -374,6 +624,34 @@ func cleanupHotfix_43284() {
 	fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 hotfix cleanup %scompleted%s\n", green, reset)
 }
 
+func cleanupHotfix_46331() {
+	fmt.Println("\nCleaning up CVE-2026-46331 (PEdit-CoW) hotfix artifacts...")
+
+	if entries, err := os.ReadDir("/etc/modprobe.d/"); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+			filePath := "/etc/modprobe.d/" + entry.Name()
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				continue
+			}
+			if strings.Contains(string(data), "act_pedit") {
+				if err := os.Remove(filePath); err != nil {
+					fmt.Printf("Removing %s - %sFAIL%s : %v\n", filePath, red, reset, err)
+				} else {
+					fmt.Printf("Removing %s - %sOK%s\n", filePath, green, reset)
+				}
+			}
+		}
+	}
+
+	removeGrubBlacklist_46331()
+	
+	fmt.Printf("\nCVE-2026-46331 (PEdit-CoW) hotfix cleanup %scompleted%s\n", green, reset)
+}
+
 func removeGrubBlacklist_43284() {
 	grub := "/etc/default/grub"
 	backup := "/etc/default/grub.bak.afalg"
@@ -400,6 +678,71 @@ func removeGrubBlacklist_43284() {
 			newValue := currentValue
 
 			moduleRe := regexp.MustCompile(`\s*module_blacklist=([^ ]*(?:esp4|esp6|rxrpc)[^ ]*)\s*`)
+			if moduleRe.MatchString(newValue) {
+				newValue = moduleRe.ReplaceAllString(newValue, " ")
+			}
+
+			newValue = strings.TrimSpace(newValue)
+			newValue = regexp.MustCompile(`\s+`).ReplaceAllString(newValue, " ")
+			
+			if newValue != currentValue {
+				newLine := matches[1] + `"` + newValue + `"`
+				cfg = strings.Replace(cfg, matches[0], newLine, 1)
+			}
+		}
+	}
+	
+	if cfg == originalCfg {
+		return
+	}
+	
+	if err := os.WriteFile(grub, []byte(cfg), 0644); err != nil {
+		return
+	}
+
+	var errUpdate error
+	if _, err := exec.LookPath("grub2-mkconfig"); err == nil {
+		fmt.Println("Running: grub2-mkconfig -o /boot/grub2/grub.cfg")
+		errUpdate = exec.Command("grub2-mkconfig", "-o", "/boot/grub2/grub.cfg").Run()
+	} else if _, err := exec.LookPath("grub-mkconfig"); err == nil {
+		fmt.Println("Running: grub-mkconfig -o /boot/grub/grub.cfg")
+		errUpdate = exec.Command("grub-mkconfig", "-o", "/boot/grub/grub.cfg").Run()
+	} else if _, err := exec.LookPath("update-grub"); err == nil {
+		fmt.Println("Running: update-grub")
+		errUpdate = exec.Command("update-grub").Run()
+	}
+	
+	if errUpdate != nil {
+		_ = restoreFile(backup, grub)
+	}
+}
+
+func removeGrubBlacklist_46331() {
+	grub := "/etc/default/grub"
+	backup := "/etc/default/grub.bak.afalg"
+
+	if _, err := exec.LookPath("grubby"); err == nil {
+		fmt.Println("Running: grubby --update-kernel=ALL --remove-args=module_blacklist=act_pedit")
+		exec.Command("grubby", "--update-kernel=ALL", "--remove-args=module_blacklist=act_pedit").Run()
+	}
+
+	data, err := os.ReadFile(grub)
+	if err != nil {
+		return
+	}
+	
+	cfg := string(data)
+	originalCfg := cfg
+
+	for _, key := range []string{"GRUB_CMDLINE_LINUX_DEFAULT", "GRUB_CMDLINE_LINUX"} {
+		re := regexp.MustCompile(`(` + key + `\s*=\s*)"([^"]*)"`)
+		matches := re.FindStringSubmatch(cfg)
+		
+		if len(matches) >= 3 {
+			currentValue := matches[2]
+			newValue := currentValue
+
+			moduleRe := regexp.MustCompile(`\s*module_blacklist=([^ ]*act_pedit[^ ]*)\s*`)
 			if moduleRe.MatchString(newValue) {
 				newValue = moduleRe.ReplaceAllString(newValue, " ")
 			}
@@ -524,6 +867,39 @@ func hasAnyHotfixArtifacts_43284() bool {
 					return true
 				}
 			}
+		}
+	}
+
+	return false
+}
+
+func hasAnyHotfixArtifacts_46331() bool {
+	if entries, err := os.ReadDir("/etc/modprobe.d/"); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+			data, err := os.ReadFile("/etc/modprobe.d/" + entry.Name())
+			if err != nil {
+				continue
+			}
+			if strings.Contains(string(data), "act_pedit") {
+				return true
+			}
+		}
+	}
+
+	if data, err := os.ReadFile("/proc/cmdline"); err == nil {
+		cmdline := string(data)
+		if strings.Contains(cmdline, "module_blacklist=") && strings.Contains(cmdline, "act_pedit") {
+			return true
+		}
+	}
+
+	if data, err := os.ReadFile("/etc/default/grub"); err == nil {
+		grubCfg := string(data)
+		if strings.Contains(grubCfg, "module_blacklist=") && strings.Contains(grubCfg, "act_pedit") {
+			return true
 		}
 	}
 
@@ -791,6 +1167,9 @@ func removeGrubBlacklist() {
 		
 		fmt.Println("Running: grubby --update-kernel=ALL --remove-args=module_blacklist=rxrpc,esp4,esp6")
 		exec.Command("grubby", "--update-kernel=ALL", "--remove-args=module_blacklist=rxrpc,esp4,esp6").Run()
+		
+		fmt.Println("Running: grubby --update-kernel=ALL --remove-args=module_blacklist=act_pedit")
+		exec.Command("grubby", "--update-kernel=ALL", "--remove-args=module_blacklist=act_pedit").Run()
 	}
 
 	data, err := os.ReadFile(grub)
@@ -816,7 +1195,7 @@ func removeGrubBlacklist() {
 				removedParams = append(removedParams, "initcall_blacklist=algif_aead_init")
 			}
 
-			moduleRe := regexp.MustCompile(`\s*module_blacklist=([^ ]*(?:algif_aead|rxrpc|esp4|esp6)[^ ]*)\s*`)
+			moduleRe := regexp.MustCompile(`\s*module_blacklist=([^ ]*(?:algif_aead|rxrpc|esp4|esp6|act_pedit)[^ ]*)\s*`)
 			if moduleRe.MatchString(newValue) {
 				match := moduleRe.FindStringSubmatch(newValue)
 				if len(match) >= 2 {
@@ -874,6 +1253,98 @@ func removeGrubBlacklist() {
 	}
 	
 	fmt.Printf("Updating grub - %sOK%s\n", green, reset)
+}
+
+func updateGrubBlacklist_46331() bool {
+	data, err := os.ReadFile("/proc/cmdline")
+	if err == nil && strings.Contains(string(data), "module_blacklist=act_pedit") {
+		fmt.Printf("Blacklisting act_pedit module using grub - %sOK%s (already blacklisted)\n", green, reset)
+		return true
+	}
+
+	if _, err := exec.LookPath("grubby"); err == nil {
+		fmt.Println("Running: grubby --update-kernel=ALL --args=module_blacklist=act_pedit")
+		if err := exec.Command("grubby", "--update-kernel=ALL", "--args=module_blacklist=act_pedit").Run(); err != nil {
+			fmt.Printf("Blacklisting act_pedit module using grub - %sFAIL%s (grubby failed: %v)\n", red, reset, err)
+			fmt.Printf("Falling back to grub config editing...\n")
+		} else {
+			fmt.Printf("Blacklisting act_pedit module using grub - %sOK%s\n", green, reset)
+			return true
+		}
+	}
+
+	backup := "/etc/default/grub.bak.afalg"
+	grub := "/etc/default/grub"
+
+	if _, err := os.Stat(backup); err != nil {
+		_ = backupFile(grub, backup)
+	}
+
+	data, err = os.ReadFile(grub)
+	if err != nil {
+		fmt.Printf("Blacklisting act_pedit module using grub - %sFAIL%s (cannot read grub config: %v)\n", red, reset, err)
+		return false
+	}
+
+	cfg := string(data)
+
+	re := regexp.MustCompile(`(GRUB_CMDLINE_LINUX_DEFAULT\s*=\s*)"([^"]*)"`)
+	matches := re.FindStringSubmatch(cfg)
+
+	if len(matches) < 3 {
+		fmt.Printf("Blacklisting act_pedit module using grub - %sFAIL%s (GRUB_CMDLINE_LINUX_DEFAULT not found)\n", red, reset)
+		return false
+	}
+
+	currentValue := matches[2]
+
+	if strings.Contains(currentValue, "module_blacklist=act_pedit") {
+		fmt.Printf("Blacklisting act_pedit module using grub - %sOK%s (already in config)\n", green, reset)
+		return true
+	}
+
+	var newValue string
+	currentValue = strings.TrimSpace(currentValue)
+
+	moduleRe := regexp.MustCompile(`\s*module_blacklist=([^"]*)`)
+	if moduleRe.MatchString(currentValue) {
+		newValue = moduleRe.ReplaceAllString(currentValue, " module_blacklist=$1,act_pedit")
+	} else {
+		if currentValue == "" {
+			newValue = "module_blacklist=act_pedit"
+		} else {
+			newValue = currentValue + " module_blacklist=act_pedit"
+		}
+	}
+
+	newLine := matches[1] + `"` + newValue + `"`
+	cfg = re.ReplaceAllString(cfg, newLine)
+
+	if err := os.WriteFile(grub, []byte(cfg), 0644); err != nil {
+		fmt.Printf("Blacklisting act_pedit module using grub - %sFAIL%s (cannot write grub config: %v)\n", red, reset, err)
+		return false
+	}
+
+	var errUpdate error
+	if _, err := exec.LookPath("grub2-mkconfig"); err == nil {
+		fmt.Println("Running: grub2-mkconfig -o /boot/grub2/grub.cfg")
+		errUpdate = exec.Command("grub2-mkconfig", "-o", "/boot/grub2/grub.cfg").Run()
+	} else if _, err := exec.LookPath("grub-mkconfig"); err == nil {
+		fmt.Println("Running: grub-mkconfig -o /boot/grub/grub.cfg")
+		errUpdate = exec.Command("grub-mkconfig", "-o", "/boot/grub/grub.cfg").Run()
+	} else if _, err := exec.LookPath("update-grub"); err == nil {
+		fmt.Println("Running: update-grub")
+		errUpdate = exec.Command("update-grub").Run()
+	}
+
+	if errUpdate != nil {
+		_ = restoreFile(backup, grub)
+		fmt.Printf("Blacklisting act_pedit module using grub - %sFAIL%s (grub update failed: %v)\n", red, reset, errUpdate)
+		return false
+	}
+
+	fmt.Printf("Blacklisting act_pedit module using grub - %sOK%s\n", green, reset)
+	return true
 }
 
 func handleKernelUpdate(moduleNames ...string) {
@@ -1039,218 +1510,38 @@ func getProtectedKernels_CVE_2026_46300() []KernelRequirement {
 	}
 }
 
-func isProtectedOSMaxVersion_CVE_2026_46300() bool {
-	vendor, version, _ := getSysInfo()
-	maxVersion := getMaxProtectedVersion_CVE_2026_43284(vendor)
+func getProtectedKernels_CVE_2026_46331() []KernelRequirement {
+	return []KernelRequirement{
 
-	osMajor, osMinor := versionParts(version)
-	maxMajor, maxMinor := versionParts(maxVersion)
+		{Vendor: "debian", Version: "11", MinKernel: "9.9.9-99-amd64"},
+		{Vendor: "debian", Version: "12", MinKernel: "9.9.9-99-amd64"},
+		{Vendor: "debian", Version: "13", MinKernel: "6.12.94+deb13-amd64"},
 
-	return osMajor > maxMajor || (osMajor == maxMajor && osMinor > maxMinor)
-}
+		{Vendor: "ubuntu", Version: "22.04", MinKernel: "9.9.9-99-generic"},
+		{Vendor: "ubuntu", Version: "24.04", MinKernel: "9.9.9-99-generic"},
+		{Vendor: "ubuntu", Version: "25.04", MinKernel: "9.9.9-99-generic"},
+		{Vendor: "ubuntu", Version: "26.04", MinKernel: "9.9.9-99-generic"},
 
-func isExactOSMatch_CVE_2026_46300() bool {
-	vendor, version, kernelRelease := getSysInfo()
-	osMajor, _ := versionParts(version)
+		{Vendor: "almalinux", Version: "8.10", MinKernel: "4.18.0-553.136.1.el8_10.x86_64"},
+		{Vendor: "almalinux", Version: "9.8",  MinKernel: "5.14.0-687.17.1.el9_8.x86_64"},
+		{Vendor: "almalinux", Version: "10.2", MinKernel: "6.12.0-211.26.1.el10_2.x86_64"},
 
-	protectedKernels := getProtectedKernels_CVE_2026_46300()
-	for _, pk := range protectedKernels {
-		if vendor != pk.Vendor {
-			continue
-		}
-		pkMajor, _ := versionParts(pk.Version)
+		{Vendor: "fedora", Version: "42", MinKernel: "6.19.14-108.fc42.x86_64"},
+		{Vendor: "fedora", Version: "43", MinKernel: "7.0.12-101.fc43.x86_64"},
+		{Vendor: "fedora", Version: "44", MinKernel: "7.0.12-201.fc44.x86_64"},
 
-		if osMajor == pkMajor {
-			if strings.HasPrefix(pk.MinKernel, "9.9.9-99") {
-				return false
-			}
-			result := compareKernelVersions(kernelRelease, pk.MinKernel)
-			return result < 0
-		}
+		{Vendor: "oracle", Version: "8.10", MinKernel: "9.9.9-99.el8uek.x86_64"},
+		{Vendor: "oracle", Version: "9.7", MinKernel: "9.9.9-99.el9uek.x86_64"},
+		{Vendor: "oracle", Version: "10.1", MinKernel: "9.9.9-99.el10uek.x86_64"},
+
+		{Vendor: "rocky", Version: "8.10", MinKernel: "4.18.0-553.136.1.el8_10.x86_64"},
+		{Vendor: "rocky", Version: "9.8", MinKernel: "5.14.0-687.17.1.el9_8.x86_64"},
+		{Vendor: "rocky", Version: "10.2", MinKernel: "6.12.0-211.26.1.el10_2.x86_64"},
+
+		{Vendor: "centos", Version: "8", MinKernel: "9.9.9-99.el9.x86_64"},
+		{Vendor: "centos", Version: "9", MinKernel: "9.9.9-99.el9.x86_64"},
+		{Vendor: "centos", Version: "10", MinKernel: "9.9.9-99.el10.x86_64"},
 	}
-	return false
-}
-
-func getSysInfo() (vendor string, version string, kernelRelease string) {
-	file, err := os.Open("/etc/os-release")
-	if err != nil {
-		return "", "", ""
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	id := ""
-	versionID := ""
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "ID=") {
-			id = strings.Trim(strings.TrimPrefix(line, "ID="), "\"")
-		}
-		if strings.HasPrefix(line, "VERSION_ID=") {
-			versionID = strings.Trim(strings.TrimPrefix(line, "VERSION_ID="), "\"")
-		}
-	}
-
-	idLower := strings.ToLower(id)
-	switch {
-	case strings.Contains(idLower, "ol") || strings.Contains(idLower, "oracle"):
-		vendor = "oracle"
-	case strings.Contains(idLower, "almalinux"):
-		vendor = "almalinux"
-	case strings.Contains(idLower, "debian"):
-		vendor = "debian"
-	case strings.Contains(idLower, "ubuntu"):
-		vendor = "ubuntu"
-	case strings.Contains(idLower, "fedora"):
-		vendor = "fedora"
-	case strings.Contains(idLower, "rocky"):
-	    vendor = "rocky"
-	case strings.Contains(idLower, "centos"):
-		vendor = "centos"
-	default:
-		vendor = ""
-	}
-
-	version = versionID
-
-	var utsname unix.Utsname
-	if err := unix.Uname(&utsname); err != nil {
-		kernelRelease = ""
-	} else {
-		kernelRelease = strings.TrimRight(string(utsname.Release[:]), "\x00")
-	}
-
-	return vendor, version, kernelRelease
-}
-
-func parseKernelVersion(version string) (major, minor, patch int, build []int) {
-	mainPart := version
-
-	if idx := strings.Index(mainPart, "+"); idx != -1 {
-		mainPart = mainPart[:idx]
-	}
-
-	if idx := strings.Index(mainPart, ".el"); idx != -1 {
-		mainPart = mainPart[:idx]
-	} else if idx := strings.Index(mainPart, "-generic"); idx != -1 {
-		mainPart = mainPart[:idx]
-	} else if idx := strings.Index(mainPart, "-amd64"); idx != -1 {
-		mainPart = mainPart[:idx]
-	}
-
-	if idx := strings.Index(mainPart, ".fc"); idx != -1 {
-		mainPart = mainPart[:idx]
-	}
-
-	versionParts := strings.Split(mainPart, "-")
-
-	if len(versionParts) >= 1 {
-		verNums := strings.Split(versionParts[0], ".")
-		if len(verNums) >= 1 {
-			major, _ = strconv.Atoi(verNums[0])
-		}
-		if len(verNums) >= 2 {
-			minor, _ = strconv.Atoi(verNums[1])
-		}
-		if len(verNums) >= 3 {
-			patch, _ = strconv.Atoi(verNums[2])
-		}
-	}
-
-	if len(versionParts) >= 2 {
-		buildStrs := strings.Split(versionParts[1], ".")
-		for _, bs := range buildStrs {
-			num, err := strconv.Atoi(bs)
-			if err == nil {
-				build = append(build, num)
-			}
-		}
-	}
-
-	return major, minor, patch, build
-}
-
-func compareBuilds(b1, b2 []int) int {
-	for i := 0; i < len(b1) && i < len(b2); i++ {
-		if b1[i] > b2[i] {
-			return 1
-		} else if b1[i] < b2[i] {
-			return -1
-		}
-	}
-
-	if len(b1) > len(b2) {
-		return 1
-	} else if len(b1) < len(b2) {
-		return -1
-	}
-
-	return 0
-}
-
-func compareKernelVersions(v1, v2 string) int {
-	v1Major, v1Minor, v1Patch, v1Build := parseKernelVersion(v1)
-	v2Major, v2Minor, v2Patch, v2Build := parseKernelVersion(v2)
-
-	if v1Major != v2Major {
-		return compare(v1Major, v2Major)
-	}
-	if v1Minor != v2Minor {
-		return compare(v1Minor, v2Minor)
-	}
-	if v1Patch != v2Patch {
-		return compare(v1Patch, v2Patch)
-	}
-
-	return compareBuilds(v1Build, v2Build)
-}
-
-func compare(a, b int) int {
-	if a > b {
-		return 1
-	} else if a < b {
-		return -1
-	}
-	return 0
-}
-
-func versionParts(version string) (int, int) {
-	parts := strings.Split(version, ".")
-	major := 0
-	minor := 0
-	if len(parts) > 0 {
-		major, _ = strconv.Atoi(parts[0])
-	}
-	if len(parts) > 1 {
-		minor, _ = strconv.Atoi(parts[1])
-	}
-	return major, minor
-}
-
-func isProtectedOS(getProtectedKernels func() []KernelRequirement) bool {
-	vendor, version, kernelRelease := getSysInfo()
-	if vendor == "" || version == "" || kernelRelease == "" {
-		return false
-	}
-
-	osMajor, _ := versionParts(version)
-
-	protectedKernels := getProtectedKernels()
-	for _, pk := range protectedKernels {
-		if vendor != pk.Vendor {
-			continue
-		}
-		pkMajor, _ := versionParts(pk.Version)
-
-		if osMajor != pkMajor {
-			continue
-		}
-		result := compareKernelVersions(kernelRelease, pk.MinKernel)
-		return result >= 0
-	}
-
-	return false
 }
 
 func getMaxProtectedVersion_CVE_2026_31431(vendor string) string {
@@ -1282,6 +1573,48 @@ func getMaxProtectedVersion_CVE_2026_43284(vendor string) string {
 		return "26.04"
 	case "almalinux":
 		return "10.1"
+	case "fedora":
+		return "43"
+	case "oracle":
+		return "10.1"
+	case "rocky":
+	    return "10.1"
+	case "centos":
+		return "10"
+	default:
+		return "0"
+	}
+}
+
+func getMaxProtectedVersion_CVE_2026_46300(vendor string) string {
+	switch vendor {
+	case "debian":
+		return "13"
+	case "ubuntu":
+		return "26.04"
+	case "almalinux":
+		return "10.1"
+	case "fedora":
+		return "43"
+	case "oracle":
+		return "10.1"
+	case "rocky":
+	    return "10.1"
+	case "centos":
+		return "10"
+	default:
+		return "0"
+	}
+}
+
+func getMaxProtectedVersion_CVE_2026_46331(vendor string) string {
+	switch vendor {
+	case "debian":
+		return "13"
+	case "ubuntu":
+		return "26.04"
+	case "almalinux":
+		return "10.2"
 	case "fedora":
 		return "43"
 	case "oracle":
@@ -1422,13 +1755,7 @@ func isBuiltin(moduleName string) bool {
 
 func skipCleanupForOS() []string {
 	return []string{
-		//"debian",
 		"ubuntu",
-		// "almalinux",
-		// "fedora",
-		// "oracle",
-		// "rocky",
-		// "centos",
 	}
 }
 
@@ -1438,6 +1765,15 @@ func hasBlacklistInCmdline() bool {
 		return false
 	}
 	return strings.Contains(string(data), "initcall_blacklist=algif_aead_init")
+}
+
+func isModuleBlacklistedInCmdline(moduleName string) bool {
+	data, err := os.ReadFile("/proc/cmdline")
+	if err != nil {
+		return false
+	}
+	cmdline := string(data)
+	return strings.Contains(cmdline, "module_blacklist=") && strings.Contains(cmdline, moduleName)
 }
 
 func backupFile(src, dst string) error {
@@ -1537,6 +1873,7 @@ func updateGrubBlacklist() bool {
 	fmt.Printf("Blacklisting algif_aead module using grub - %sOK%s\n", green, reset)
 	return true
 }
+
 func disableModules(moduleNames []string) bool {
 	allOk := true
 	
@@ -1601,6 +1938,19 @@ func checkModuleDisabled(moduleName string) bool {
 	return false
 }
 
+func isModuleActive(moduleName string) bool {
+	return isBuiltin(moduleName) || isModuleLoaded(moduleName)
+}
+
+func hasAnyModuleActive(moduleNames []string) bool {
+	for _, moduleName := range moduleNames {
+		if isModuleActive(moduleName) {
+			return true
+		}
+	}
+	return false
+}
+
 func handleCVEMitigation(cve string, moduleNames []string) {
 	vendor, version, kernelRelease := getSysInfo()
 
@@ -1625,6 +1975,11 @@ func handleCVEMitigation(cve string, moduleNames []string) {
 		    isExactMatchFunc = isExactOSMatch_CVE_2026_46300
 		    protectedKernelsFunc = getProtectedKernels_CVE_2026_46300
 	
+		case "CVE-2026-46331":
+		    isProtectedOSMaxVersionFunc = isProtectedOSMaxVersion_CVE_2026_46331
+		    isExactMatchFunc = isExactOSMatch_CVE_2026_46331
+		    protectedKernelsFunc = getProtectedKernels_CVE_2026_46331
+	
 		default:
 			applyCVEModuleDisable(cve, moduleNames)
 			return
@@ -1632,7 +1987,7 @@ func handleCVEMitigation(cve string, moduleNames []string) {
 	
 	knownOS := vendor == "ubuntu" || vendor == "debian" || vendor == "almalinux" || vendor == "fedora" || vendor == "oracle" || vendor == "rocky" || vendor == "centos"
 
-	if needMinorOSUpgrade(vendor, protectedKernelsFunc()) {
+	if knownOS && needMinorOSUpgrade(vendor, protectedKernelsFunc()) {
 	
 		fmt.Printf(
 			"\n%s OS minor upgrade available%s (OS: %s %s)\n",
@@ -1666,10 +2021,28 @@ func handleCVEMitigation(cve string, moduleNames []string) {
 		return
 	}
 	
+	if isExactMatchFunc() {
+		if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
+			fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 %svulnerable - kernel update available%s (OS: %s %s, current kernel: %s)\n",
+				red, reset, vendor, version, kernelRelease)
+		} else if cve == "CVE-2026-46331" {
+			fmt.Printf("\n%s (PEdit-CoW) %svulnerable - kernel update available%s (OS: %s %s, current kernel: %s)\n",
+				cve, red, reset, vendor, version, kernelRelease)
+		} else {
+			fmt.Printf("\n%s %svulnerable - kernel update available%s (OS: %s %s, current kernel: %s)\n",
+				cve, red, reset, vendor, version, kernelRelease)
+		}
+	    handleKernelUpdate(moduleNames...)
+            return
+	}
+	
 	if isProtectedOSMaxVersionFunc() {
 		if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
 			fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 %snot vulnerable / blocked%s (OS: %s %s, current kernel: %s)\n",
 				green, reset, vendor, version, kernelRelease)
+		} else if cve == "CVE-2026-46331" {
+			fmt.Printf("\n%s (PEdit-CoW) %snot vulnerable / blocked%s (OS: %s %s, current kernel: %s)\n",
+				cve, green, reset, vendor, version, kernelRelease)
 		} else {
 			fmt.Printf("\n%s %snot vulnerable / blocked%s (OS: %s %s, current kernel: %s)\n",
 				cve, green, reset, vendor, version, kernelRelease)
@@ -1687,6 +2060,9 @@ func handleCVEMitigation(cve string, moduleNames []string) {
 		if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
 			fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 %snot vulnerable / blocked%s (OS: %s %s, current kernel: %s)\n",
 				green, reset, vendor, version, kernelRelease)
+		} else if cve == "CVE-2026-46331" {
+			fmt.Printf("\n%s (PEdit-CoW) %snot vulnerable / blocked%s (OS: %s %s, current kernel: %s)\n",
+				cve, green, reset, vendor, version, kernelRelease)
 		} else {
 			fmt.Printf("\n%s %snot vulnerable / blocked%s (OS: %s %s, current kernel: %s)\n",
 				cve, green, reset, vendor, version, kernelRelease)
@@ -1698,18 +2074,6 @@ func handleCVEMitigation(cve string, moduleNames []string) {
 		}
 		applyCVEModuleDisable(cve, moduleNames)
 		return
-	}
-	
-	if isExactMatchFunc() {
-		if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
-			fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 %svulnerable - kernel update available%s (OS: %s %s, current kernel: %s)\n",
-				red, reset, vendor, version, kernelRelease)
-		} else {
-			fmt.Printf("\n%s %svulnerable - kernel update available%s (OS: %s %s, current kernel: %s)\n",
-				cve, red, reset, vendor, version, kernelRelease)
-		}
-	    handleKernelUpdate(moduleNames...)
-            return
 	}
 
 	needFix := false
@@ -1737,6 +2101,8 @@ func handleCVEMitigation(cve string, moduleNames []string) {
 	if !needFix {
 		if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
 			fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 %salready mitigated%s (all modules disabled)\n", green, reset)
+		} else if cve == "CVE-2026-46331" {
+			fmt.Printf("\n%s (PEdit-CoW) %salready mitigated%s (all modules disabled)\n", cve, green, reset)
 		} else {
 			fmt.Printf("\n%s %salready mitigated%s (all modules disabled)\n", cve, green, reset)
 		}
@@ -1754,11 +2120,17 @@ func applyCVEModuleDisable(cve string, moduleNames []string) {
 	
 	if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
 		fmt.Printf("\nApplying CVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 mitigation by disabling modules: %s\n", strings.Join(moduleNames, ", "))
+	} else if cve == "CVE-2026-46331" {
+		fmt.Printf("\nApplying %s (PEdit-CoW) mitigation by disabling modules: %s\n", cve, strings.Join(moduleNames, ", "))
 	} else {
 		fmt.Printf("\nApplying %s mitigation by disabling modules: %s\n", cve, strings.Join(moduleNames, ", "))
 	}
 	
 	disableModules(moduleNames)
+	
+	if cve == "CVE-2026-46331" {
+		updateGrubBlacklist_46331()
+	}
 	
 	_ = exec.Command("sync").Run()
 	_ = os.WriteFile("/proc/sys/vm/drop_caches", []byte("3\n"), 0644)
@@ -1806,15 +2178,37 @@ func applyCVEModuleDisable(cve string, moduleNames []string) {
 		}
 	}
 	
+	anyBuiltin := false
+	for _, moduleName := range moduleNames {
+		if isBuiltin(moduleName) {
+			anyBuiltin = true
+			break
+		}
+	}
+	
 	if allDisabled {
-		if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
-			fmt.Printf("CVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 Hotfix %ssuccess%s. Modules disabled. Reboot not required.\n", green, reset)
+		if anyBuiltin {
+			if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
+				fmt.Printf("CVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 Hotfix %srequires reboot%s (modules are builtin, grub blacklist applied)\n", red, reset)
+			} else if cve == "CVE-2026-46331" {
+				fmt.Printf("%s (PEdit-CoW) Hotfix %srequires reboot%s (module is builtin, grub blacklist applied)\n", cve, red, reset)
+			} else {
+				fmt.Printf("%s Hotfix %srequires reboot%s (modules are builtin, grub blacklist applied)\n", cve, red, reset)
+			}
 		} else {
-			fmt.Printf("%s Hotfix %ssuccess%s. Modules disabled. Reboot not required.\n", cve, green, reset)
+			if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
+				fmt.Printf("CVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 Hotfix %ssuccess%s. Modules disabled. Reboot not required.\n", green, reset)
+			} else if cve == "CVE-2026-46331" {
+				fmt.Printf("%s (PEdit-CoW) Hotfix %ssuccess%s. Modules disabled. Reboot not required.\n", cve, green, reset)
+			} else {
+				fmt.Printf("%s Hotfix %ssuccess%s. Modules disabled. Reboot not required.\n", cve, green, reset)
+			}
 		}
 	} else {
 		if cve == "CVE-2026-46300" || cve == "CVE-2026-43284" {
 			fmt.Printf("CVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 Hotfix %spartial%s - Some modules could not be disabled\n", red, reset)
+		} else if cve == "CVE-2026-46331" {
+			fmt.Printf("%s (PEdit-CoW) Hotfix %spartial%s - Some modules could not be disabled\n", cve, red, reset)
 		} else {
 			fmt.Printf("%s Hotfix %spartial%s - Some modules could not be disabled\n", cve, red, reset)
 		}
@@ -1852,16 +2246,23 @@ func main() {
 		cve43284Modules := []string{"esp4", "esp6", "rxrpc"}
 		cve43284Vulnerable := false
 		for _, mod := range cve43284Modules {
-			if isBuiltin(mod) || isModuleLoaded(mod) {
+			if isBuiltin(mod) || isModuleLoaded(mod) || !isModuleBlacklistedInCmdline(mod) {
 				cve43284Vulnerable = true
 				break
 			}
 		}
 		
 		if !cve43284Vulnerable {
-			fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 %snot vulnerable / blocked%s (modules not loaded)\n", green, reset)
+			fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 %snot vulnerable / blocked%s (modules blacklisted)\n", green, reset)
 		} else {
 			fmt.Printf("\n%s=== WSL Mitigation Instructions ===%s\nTo mitigate CVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 in WSL2, add to %%userprofile%%\\.wslconfig:\n\n[wsl2]\nkernelCommandLine=module_blacklist=rxrpc,esp4,esp6\n\nThen restart WSL with: wsl --shutdown\n", red, reset)
+		}
+		
+		cve46331Vulnerable := isBuiltin("act_pedit") || isModuleLoaded("act_pedit") || !isModuleBlacklistedInCmdline("act_pedit")
+		if !cve46331Vulnerable {
+			fmt.Printf("\nCVE-2026-46331 (PEdit-CoW) %snot vulnerable / blocked%s (module blacklisted)\n", green, reset)
+		} else {
+			fmt.Printf("\n%s=== WSL Mitigation Instructions ===%s\nTo mitigate CVE-2026-46331 (PEdit-CoW) in WSL2, add to %%userprofile%%\\.wslconfig:\n\n[wsl2]\nkernelCommandLine=module_blacklist=act_pedit\n\nThen restart WSL with: wsl --shutdown\n", red, reset)
 		}
 		return
 	}
@@ -1898,7 +2299,7 @@ func main() {
 	        }
 	    }
 
-	    if !skipOS && hasAnyHotfixArtifacts_43284() && root() {
+	    if !skipOS && hasAnyHotfixArtifacts_43284() && root() && !hasAnyModuleActive([]string{"esp4", "esp6", "rxrpc"}) {
 	        fmt.Printf("\nCVE-2026-46300 / CVE-2026-43500 / CVE-2026-43284 %snot vulnerable / blocked%s (OS: %s %s, current kernel: %s)\n",
 	            green, reset, vendor, version, kernelRelease)
 	        cleanupHotfix_43284()
@@ -1906,9 +2307,32 @@ func main() {
 	    }
 	}
 
-	if cleanedUp31431 || cleanedUp43284 {
+	cleanedUp46331 := false
+	protectedFrom46331 := isProtectedOSMaxVersion_CVE_2026_46331() || isProtectedOS(getProtectedKernels_CVE_2026_46331)
+	
+	if knownOSCheck && protectedFrom46331 {
+	    skipOS := false
+	    for _, os := range skipCleanupForOS() {
+	        if vendor == os {
+	            skipOS = true
+	            break
+	        }
+	    }
+
+	    if !skipOS && hasAnyHotfixArtifacts_46331() && root() && !hasAnyModuleActive([]string{"act_pedit"}) {
+	        fmt.Printf("\nCVE-2026-46331 (PEdit-CoW) %snot vulnerable / blocked%s (OS: %s %s, current kernel: %s)\n",
+	            green, reset, vendor, version, kernelRelease)
+	        cleanupHotfix_46331()
+	        cleanedUp46331 = true
+	    }
+	}
+
+	if cleanedUp31431 || cleanedUp43284 || cleanedUp46331 {
 		if !cleanedUp43284 {
 			handleCVEMitigation("CVE-2026-46300", []string{"esp4", "esp6", "rxrpc"})
+		}
+		if !cleanedUp46331 {
+			handleCVEMitigation("CVE-2026-46331", []string{"act_pedit"})
 		}
 		os.Exit(0)
 	}
@@ -1993,4 +2417,5 @@ func main() {
 
 handle43284:
 	handleCVEMitigation("CVE-2026-46300", []string{"esp4", "esp6", "rxrpc"})
+	handleCVEMitigation("CVE-2026-46331", []string{"act_pedit"})
 }
