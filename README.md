@@ -67,7 +67,7 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 
 ## Обновление ядра (не хотфикс) доступно для / Kernel update (not hotfix) is exist for
 | OS | Copy Fail<br>(CVE-2026-31431) | Dirty Frag<br>(CVE-2026-43500/43284) | Fragnesia<br>(CVE-2026-46300) | PEdit-CoW<br>(CVE-2026-46331) |
-|----|:---:|:---:|:---:|:---|
+|----|:---:|:---:|:---:|:---:|
 | **Debian 10** (buster) | ❌ | ❌ | ❌ | ❌ |
 | **Debian 11** (bullseye) | ✅ | ✅ | ✅ | ❌ |
 | **Debian 12** (bookworm) | ✅ | ✅ | ✅ | ❌ |
