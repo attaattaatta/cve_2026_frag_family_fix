@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	version = "0.18.4"
+	version = "0.19.0"
 	red   = "\033[0;91m"
 	green = "\033[0;92m"
 	reset = "\033[0m"
@@ -1513,14 +1513,14 @@ func getProtectedKernels_CVE_2026_46300() []KernelRequirement {
 func getProtectedKernels_CVE_2026_46331() []KernelRequirement {
 	return []KernelRequirement{
 
-		{Vendor: "debian", Version: "11", MinKernel: "9.9.9-99-amd64"},
-		{Vendor: "debian", Version: "12", MinKernel: "9.9.9-99-amd64"},
+		{Vendor: "debian", Version: "11", MinKernel: "5.10.0-45-amd64"},
+		{Vendor: "debian", Version: "12", MinKernel: "6.1.0-50-amd64"},
 		{Vendor: "debian", Version: "13", MinKernel: "6.12.94+deb13-amd64"},
 
 		{Vendor: "ubuntu", Version: "22.04", MinKernel: "9.9.9-99-generic"},
 		{Vendor: "ubuntu", Version: "24.04", MinKernel: "9.9.9-99-generic"},
 		{Vendor: "ubuntu", Version: "25.04", MinKernel: "9.9.9-99-generic"},
-		{Vendor: "ubuntu", Version: "26.04", MinKernel: "9.9.9-99-generic"},
+		{Vendor: "ubuntu", Version: "26.04", MinKernel: "7.0.0-27-generic"},
 
 		{Vendor: "almalinux", Version: "8.10", MinKernel: "4.18.0-553.136.1.el8_10.x86_64"},
 		{Vendor: "almalinux", Version: "9.8",  MinKernel: "5.14.0-687.17.1.el9_8.x86_64"},
@@ -1530,17 +1530,17 @@ func getProtectedKernels_CVE_2026_46331() []KernelRequirement {
 		{Vendor: "fedora", Version: "43", MinKernel: "7.0.12-101.fc43.x86_64"},
 		{Vendor: "fedora", Version: "44", MinKernel: "7.0.12-201.fc44.x86_64"},
 
-		{Vendor: "oracle", Version: "8.10", MinKernel: "9.9.9-99.el8uek.x86_64"},
-		{Vendor: "oracle", Version: "9.7", MinKernel: "9.9.9-99.el9uek.x86_64"},
-		{Vendor: "oracle", Version: "10.1", MinKernel: "9.9.9-99.el10uek.x86_64"},
+		{Vendor: "oracle", Version: "8.10", MinKernel: "5.15.0-322.203.3.2.el8uek.x86_64"},
+		{Vendor: "oracle", Version: "9.7", MinKernel: "6.12.0-204.92.4.2.el9uek.x86_64"},
+		{Vendor: "oracle", Version: "10.1", MinKernel: "6.12.0-204.92.4.2.el10uek.x86_64"},
 
 		{Vendor: "rocky", Version: "8.10", MinKernel: "4.18.0-553.136.1.el8_10.x86_64"},
 		{Vendor: "rocky", Version: "9.8", MinKernel: "5.14.0-687.17.1.el9_8.x86_64"},
 		{Vendor: "rocky", Version: "10.2", MinKernel: "6.12.0-211.26.1.el10_2.x86_64"},
 
 		{Vendor: "centos", Version: "8", MinKernel: "9.9.9-99.el9.x86_64"},
-		{Vendor: "centos", Version: "9", MinKernel: "9.9.9-99.el9.x86_64"},
-		{Vendor: "centos", Version: "10", MinKernel: "9.9.9-99.el10.x86_64"},
+		{Vendor: "centos", Version: "9", MinKernel: "5.14.0-721.el9.x86_64"},
+		{Vendor: "centos", Version: "10", MinKernel: "6.12.0-246.el10.x86_64"},
 	}
 }
 

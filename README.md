@@ -67,20 +67,20 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 
 ## Обновление ядра (не хотфикс) доступно для / Kernel update (not hotfix) is exist for
 | OS | Copy Fail<br>(CVE-2026-31431) | Dirty Frag<br>(CVE-2026-43500/43284) | Fragnesia<br>(CVE-2026-46300) | PEdit-CoW<br>(CVE-2026-46331) |
-|----|:---:|:---:|:---:|:---:|
+|----|:---:|:---:|:---:|:---|:---|
 | **Debian 10** (buster) | ❌ | ❌ | ❌ | ❌ |
-| **Debian 11** (bullseye) | ✅ | ✅ | ✅ | ❌ |
-| **Debian 12** (bookworm) | ✅ | ✅ | ✅ | ❌ |
+| **Debian 11** (bullseye) | ✅ | ✅ | ✅ | ✅ |
+| **Debian 12** (bookworm) | ✅ | ✅ | ✅ | ✅ |
 | **Debian 13** (trixie) | ✅ | ✅ | ✅ | ✅ |
 | **Ubuntu 18.04** (bionic) | ❌ | ❌ | ❌ | ❌ |
 | **Ubuntu 20.04** (focal) | ❌ | ❌ | ❌ | ❌ |
 | **Ubuntu 22.04** (jammy) | ✅ | ❌ | ❌ | ❌ |
 | **Ubuntu 24.04** (noble) | ✅ | ✅ | ✅ | ❌ |
 | **Ubuntu 25.04** (plucky) | ❌| ❌ | ❌ | ❌ |
-| **Ubuntu 26.04** (resolute) | ✅ | ✅ | ✅ | ❌ |
+| **Ubuntu 26.04** (resolute) | ✅ | ✅ | ✅ | ✅ |
 | **CentOS Stream 8** | ❌ | ❌ | ❌ | ❌ |
-| **CentOS Stream 9** | ✅ | ✅ | ❌ | ❌ |
-| **CentOS Stream 10** | ✅ | ✅ | ❌ | ❌ |
+| **CentOS Stream 9** | ✅ | ✅ | ❌ | ✅ |
+| **CentOS Stream 10** | ✅ | ✅ | ❌ | ✅ |
 | **AlmaLinux 8** | ✅ | ✅ | ✅ | ✅ |
 | **AlmaLinux 9** | ✅ | ✅ | ✅ | ✅ |
 | **AlmaLinux 10** | ✅ | ✅ | ✅ | ✅ |
@@ -92,9 +92,9 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 | **Fedora 42** | ✅ | ✅ | ✅ | ✅ |
 | **Fedora 43** | ✅ | ✅ | ✅ | ✅ |
 | **Fedora 44** | ✅ | ✅ | ✅ | ✅ |
-| **Oracle Linux 8** | ✅ | ✅ | ✅ | ❌ |
-| **Oracle Linux 9** | ✅ | ✅ | ✅ | ❌ |
-| **Oracle Linux 10** | ✅ | ✅ | ✅ | ❌ |
+| **Oracle Linux 8** | ✅ | ✅ | ✅ | ✅ |
+| **Oracle Linux 9** | ✅ | ✅ | ✅ | ✅ |
+| **Oracle Linux 10** | ✅ | ✅ | ✅ | ✅ |
 
 ## Команды обновления ядра / Kernel update commands
 - Debian `apt update && apt install linux-image-amd64 linux-headers-amd64 -y`
@@ -107,20 +107,20 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 
 ## Минимальная версия ядра для исправления / Kernel fixed minimal version number
 | OS | Copy Fail<br>(CVE-2026-31431) | Dirty Frag<br>(CVE-2026-43284) | Fragnesia<br>(CVE-2026-46300) | PEdit-CoW<br>(CVE-2026-46331) |
-|----|:---|:---|:---|:---|
+|----|:---|:---|:---|:---|:---|
 | **Debian 10** (buster) | ❌ | ❌ | ❌ | ❌ |
-| **Debian 11** (bullseye) | 5.10.0-41-amd64 | 5.10.0-42-amd64 | 5.10.0-43-amd64 | ❌ |
-| **Debian 12** (bookworm) | 6.1.0-45-amd64 | 6.1.0-47-amd64 | 6.1.0-48-amd64 | ❌ |
+| **Debian 11** (bullseye) | 5.10.0-41-amd64 | 5.10.0-42-amd64 | 5.10.0-43-amd64 | 5.10.0-45-amd64 |
+| **Debian 12** (bookworm) | 6.1.0-45-amd64 | 6.1.0-47-amd64 | 6.1.0-48-amd64 | 6.1.0-50-amd64 |
 | **Debian 13** (trixie) | 6.12.85+deb13-amd64 | 6.12.86+deb13-amd64 | 6.12.88+deb13-amd64 | 6.12.94+deb13-amd64 |
 | **Ubuntu 18.04** (bionic) | ❌ | ❌ | ❌ | ❌ |
 | **Ubuntu 20.04** (focal) | ❌ | ❌ | ❌ | ❌ |
 | **Ubuntu 22.04** (jammy) | 5.15.0-177-generic | ❌ | ❌ | ❌ |
 | **Ubuntu 24.04** (noble) | 6.8.0-111-generic | 6.8.0-124-generic | 6.8.0-124-generic | ❌ |
 | **Ubuntu 25.04** (plucky) | ❌ | ❌ | ❌ | ❌ |
-| **Ubuntu 26.04** (resolute) | 7.0.0-15-generic | 7.0.0-22-generic | 7.0.0-22-generic | ❌ |
+| **Ubuntu 26.04** (resolute) | 7.0.0-15-generic | 7.0.0-22-generic | 7.0.0-22-generic | 7.0.0-27-generic |
 | **CentOS Stream 8** | ❌ | ❌ | ❌ | ❌ |
-| **CentOS Stream 9** | 5.14.0-701.el9.x86_64 | 5.14.0-708.el9.x86_64 | ❌ | ❌ |
-| **CentOS Stream 10** | 6.12.0-226.el10.x86_64 | 6.12.0-231.el10.x86_64 | ❌ | ❌ |
+| **CentOS Stream 9** | 5.14.0-701.el9.x86_64 | 5.14.0-708.el9.x86_64 | 5.14.0-721.el9.x86_64 | 5.14.0-721.el9.x86_64 |
+| **CentOS Stream 10** | 6.12.0-226.el10.x86_64 | 6.12.0-231.el10.x86_64 | 6.12.0-246.el10.x86_64 | 6.12.0-246.el10.x86_64 |
 | **AlmaLinux 8.10** | 4.18.0-553.121.1.el8_10.x86_64 | 4.18.0-553.123.2.el8_10.x86_64 | 4.18.0-553.124.4.el8_10.x86_64 | 4.18.0-553.136.1.el8_10.x86_64 |
 | **AlmaLinux 9.7** | 5.14.0-611.49.2.el9_7.x86_64 | 5.14.0-611.54.3.el9_7.x86_64 | 5.14.0-611.54.6.el9_7.x86_64 | 5.14.0-687.17.1.el9_8.x86_64 |
 | **AlmaLinux 10.2** | 6.12.0-211.26.1.el10_2.x86_64 | 6.12.0-211.26.1.el10_2.x86_64 | 6.12.0-211.26.1.el10_2.x86_64 | 6.12.0-211.26.1.el10_2.x86_64 |
@@ -132,6 +132,6 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 | **Fedora 42** | 6.19.14-100.fc42.x86_64 | 6.19.14-101.fc42.x86_64 | 6.19.14-108.fc42.x86_64 | 6.19.14-108.fc42.x86_64 |
 | **Fedora 43** | 6.19.14-200.fc43.x86_64 | 7.0.4-100.fc43.x86_64 | 7.0.9-105.fc43.x86_64 | 7.0.12-101.fc43.x86_64 |
 | **Fedora 44** | 6.19.14-300.fc44.x86_64 | 7.0.4-200.fc44.x86_64 | 7.0.9-205.fc44.x86_64 | 7.0.12-201.fc44.x86_64 |
-| **Oracle Linux 8.10** | 5.15.0-319.201.4.4.el8uek.x86_64 | 5.15.0-319.201.4.6.el8uek.x86_64 | 5.15.0-320.202.8.5.el8uek.x86_64 | ❌ |
-| **Oracle Linux 9.7** | 6.12.0-201.74.2.2.el9uek.x86_64 | 6.12.0-201.74.2.3.el9uek.x86_64 | 6.12.0-202.76.4.4.el9uek.x86_64 | ❌ |
-| **Oracle Linux 10.1** | 6.12.0-201.74.2.2.el10uek.x86_64 | 6.12.0-201.74.2.3.el10uek.x86_64 | 6.12.0-202.76.4.4.el10uek.x86_64 | ❌ |
+| **Oracle Linux 8.10** | 5.15.0-319.201.4.4.el8uek.x86_64 | 5.15.0-319.201.4.6.el8uek.x86_64 | 5.15.0-320.202.8.5.el8uek.x86_64 | 5.15.0-322.203.3.2.el8uek.x86_64 |
+| **Oracle Linux 9.7** | 6.12.0-201.74.2.2.el9uek.x86_64 | 6.12.0-201.74.2.3.el9uek.x86_64 | 6.12.0-202.76.4.4.el9uek.x86_64 | 6.12.0-204.92.4.2.el9uek.x86_64 |
+| **Oracle Linux 10.1** | 6.12.0-201.74.2.2.el10uek.x86_64 | 6.12.0-201.74.2.3.el10uek.x86_64 | 6.12.0-202.76.4.4.el10uek.x86_64 | 6.12.0-204.92.4.2.el10uek.x86_64 |
