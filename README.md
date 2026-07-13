@@ -67,7 +67,7 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 
 ## Обновление ядра (не хотфикс) доступно для / Kernel update (not hotfix) is exist for
 | OS | Copy Fail<br>(CVE-2026-31431) | Dirty Frag<br>(CVE-2026-43500/43284) | Fragnesia<br>(CVE-2026-46300) | PEdit-CoW<br>(CVE-2026-46331) |
-|----|:---:|:---:|:---:|:---|:---|
+|----|:---:|:---:|:---:|:---:|
 | **Debian 10** (buster) | ❌ | ❌ | ❌ | ❌ |
 | **Debian 11** (bullseye) | ✅ | ✅ | ✅ | ✅ |
 | **Debian 12** (bookworm) | ✅ | ✅ | ✅ | ✅ |
@@ -107,7 +107,7 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 
 ## Минимальная версия ядра для исправления / Kernel fixed minimal version number
 | OS | Copy Fail<br>(CVE-2026-31431) | Dirty Frag<br>(CVE-2026-43284) | Fragnesia<br>(CVE-2026-46300) | PEdit-CoW<br>(CVE-2026-46331) |
-|----|:---|:---|:---|:---|:---|
+|----|:---|:---|:---|:---|
 | **Debian 10** (buster) | ❌ | ❌ | ❌ | ❌ |
 | **Debian 11** (bullseye) | 5.10.0-41-amd64 | 5.10.0-42-amd64 | 5.10.0-43-amd64 | 5.10.0-45-amd64 |
 | **Debian 12** (bookworm) | 6.1.0-45-amd64 | 6.1.0-47-amd64 | 6.1.0-48-amd64 | 6.1.0-50-amd64 |
