@@ -79,8 +79,8 @@ docker run --rm -v "$PWD":/app -w /app golang:alpine sh -c "apk add --no-cache u
 | **Ubuntu 25.04** (plucky) | ❌| ❌ | ❌ | ❌ |
 | **Ubuntu 26.04** (resolute) | ✅ | ✅ | ✅ | ✅ |
 | **CentOS Stream 8** | ❌ | ❌ | ❌ | ❌ |
-| **CentOS Stream 9** | ✅ | ✅ | ❌ | ✅ |
-| **CentOS Stream 10** | ✅ | ✅ | ❌ | ✅ |
+| **CentOS Stream 9** | ✅ | ✅ | ✅ | ✅ |
+| **CentOS Stream 10** | ✅ | ✅ | ✅ | ✅ |
 | **AlmaLinux 8** | ✅ | ✅ | ✅ | ✅ |
 | **AlmaLinux 9** | ✅ | ✅ | ✅ | ✅ |
 | **AlmaLinux 10** | ✅ | ✅ | ✅ | ✅ |
